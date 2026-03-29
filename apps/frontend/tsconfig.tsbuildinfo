@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/lib/AuthContext.tsx","./src/lib/apiClient.ts","./src/lib/useQuizStream.ts","./vite.config.ts"],"version":"5.9.3"}

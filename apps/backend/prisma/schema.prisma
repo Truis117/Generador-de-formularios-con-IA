@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SessionStatus {
+  CREATED
+  GENERATING
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+enum RoundStatus {
+  CREATED
+  GENERATING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id             String            @id @default(uuid())
+  email          String            @unique
+  passwordHash   String
+  globalScore    Int               @default(0)
+  sessions       QuizSession[]
+  attempts       QuestionAttempt[]
+  subtopicMastery SubtopicMastery[]
+  refreshTokens  RefreshToken[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model QuizSession {
+  id                String         @id @default(uuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id])
+  topic             String
+  currentDifficulty Difficulty     @default(MEDIUM)
+  status            SessionStatus  @default(CREATED)
+  rounds            QuizRound[]
+  traces            LlmTrace[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model QuizRound {
+  id                  String      @id @default(uuid())
+  sessionId           String
+  session             QuizSession @relation(fields: [sessionId], references: [id])
+  roundIndex          Int
+  requestedCount      Int
+  requestedDifficulty Difficulty
+  status              RoundStatus @default(CREATED)
+  generatedCount      Int         @default(0)
+  finalAccuracy       Float?
+  avgResponseTimeSec  Float?
+  questions           Question[]
+  traces              LlmTrace[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@unique([sessionId, roundIndex])
+}
+
+model Question {
+  id                 String       @id @default(uuid())
+  roundId            String
+  round              QuizRound    @relation(fields: [roundId], references: [id])
+  orderIndex         Int
+  questionText       String
+  options            Json
+  correctOption      String
+  explanation        String
+  difficultyAssigned Difficulty
+  generationModel    String
+  promptVersion      String
+  subtopic           String       @default("general")
+  attempts           QuestionAttempt[]
+  createdAt          DateTime     @default(now())
+
+  @@unique([roundId, orderIndex])
+}
+
+model QuestionAttempt {
+  id              String    @id @default(uuid())
+  questionId      String
+  question        Question  @relation(fields: [questionId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  attemptId       String    @unique
+  selectedOption  String
+  isCorrect       Boolean
+  responseTimeSec Float?
+  scoreDelta      Int
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@unique([questionId, userId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tokenHash String   @unique
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, revoked])
+}
+
+model SubtopicMastery {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  topic        String
+  subtopic     String
+  masteryScore Float    @default(0)
+  correctCount Int      @default(0)
+  wrongCount   Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, topic, subtopic])
+}
+
+model LlmTrace {
+  id               String      @id @default(uuid())
+  sessionId        String
+  session          QuizSession @relation(fields: [sessionId], references: [id])
+  roundId          String?
+  round            QuizRound?  @relation(fields: [roundId], references: [id])
+  model            String
+  provider         String
+  promptTokens     Int?
+  completionTokens Int?
+  latencyMs        Int?
+  estimatedCostUsd Float?
+  createdAt        DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+}

@@ -10,7 +10,7 @@ La plataforma mantiene un historial de sesiones, gestiona un sistema de puntuaci
 
 ## 📸 Capturas / GIFs
 <!-- TODO: Añadir capturas de pantalla o GIFs de la aplicación aquí -->
-![Captura de pantalla principal]()
+
 
 ## 🛠️ Cómo se ha utilizado CubePath
 En el desarrollo de **QuizDinámico AI**, hemos integrado la infraestructura y herramientas de **CubePath** de la siguiente manera:
